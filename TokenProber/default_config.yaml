@@ -1,0 +1,8 @@
+# Default TokenProber Config
+model_path: "openai-community/gpt2"
+prompt: "Describe why reinforcement learning is useful for dialog agents."
+device: null
+torch_dtype: "auto"
+max_new_tokens: 256
+temperature: 1.0
+top_k_display: 12
