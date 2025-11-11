@@ -35,8 +35,11 @@ class InferenceRunner:
 
     def run(self, examples: Iterable[DatasetExample]) -> List[InferenceRecord]:
         records: List[InferenceRecord] = []
+        self.output_path.parent.mkdir(parents=True, exist_ok=True)
 
         with self.output_path.open("w", encoding="utf-8") as fp:
+            fp.write("[\n")
+            first_record = True
             for example in tqdm(examples, desc="Inference", unit="example"):
                 # Create prompt
                 prompt = self._format_prompt(example)
@@ -49,7 +52,7 @@ class InferenceRunner:
                     else generation.completion
                 )
 
-                # Summrize record
+                # Summarize record
                 record = InferenceRecord(
                     example_id=example.example_id,
                     question=example.question,
@@ -60,8 +63,12 @@ class InferenceRunner:
                 )
                 records.append(record)
 
-                # Write record
-                fp.write(json.dumps(asdict(record), ensure_ascii=False) + "\n")
+                if not first_record:
+                    fp.write(",\n")
+                first_record = False
+                fp.write(json.dumps(asdict(record), ensure_ascii=False))
+                fp.flush()
+            fp.write("\n]\n")
 
         return records
 

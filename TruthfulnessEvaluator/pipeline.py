@@ -29,18 +29,24 @@ class TruthfulnessPipeline:
         )
 
         test_model = create_test_model_runner(self.config.test_model.name)
-        judge_model = create_judge_model_runner(self.config.judge_model.name)
-        inference_runner = InferenceRunner(
-            model=test_model,
-            output_path=self.run_dir / "inference_outputs.jsonl",
-        )
-        judge_runner = JudgeRunner(
-            model=judge_model,
-            output_path=self.run_dir / "judgements.jsonl",
-        )
+        try:
+            inference_runner = InferenceRunner(
+                model=test_model,
+                output_path=self.run_dir / "inference_outputs.json",
+            )
+            inference_records = inference_runner.run(dataset_loader.load())
+        finally:
+            test_model.unload()
 
-        inference_records = inference_runner.run(dataset_loader.load())
-        judgements = judge_runner.run(inference_records)
+        judge_model = create_judge_model_runner(self.config.judge_model.name)
+        try:
+            judge_runner = JudgeRunner(
+                model=judge_model,
+                output_path=self.run_dir / "judgements.json",
+            )
+            judgements = judge_runner.run(inference_records)
+        finally:
+            judge_model.unload()
 
         report = ReportBuilder().build(judgements)
         report_path = self.run_dir / "summary.txt"
