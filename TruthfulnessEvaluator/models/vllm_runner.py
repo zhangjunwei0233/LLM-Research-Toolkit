@@ -26,6 +26,8 @@ class VLLMModelRunner:
             tensor_parallel_size=tensor_parallel,
             gpu_memory_utilization=config.vllm_gpu_memory_utilization,
             max_num_seqs=config.vllm_max_num_seqs,
+            max_model_len=config.vllm_max_model_len,
+            swap_space=config.vllm_swap_space,
         )
         self._is_unloaded = False
 

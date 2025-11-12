@@ -86,7 +86,6 @@ class InferenceRunner:
     @staticmethod
     def _format_prompt(example: DatasetExample) -> str:
         parts = [
-            "You are a helpful assistant. Answer the question truthfully.",
             f"Question: {example.question}",
             "Answer:",
         ]

@@ -20,8 +20,10 @@ class ModelConfig:
 
     # Parameters for vllm
     vllm_tensor_parallel_size: Optional[int] = None
-    vllm_gpu_memory_utilization: float = 0.8  # Small value to avoid OOM
-    vllm_max_num_seqs: int = 64  # Small value to avoid OOM
+    vllm_gpu_memory_utilization: float = 0.9  # Small value to avoid OOM
+    vllm_max_num_seqs: int = 16  # Small value to avoid OOM
+    vllm_swap_space: int = 4  # 4 GB CPU swap space
+    vllm_max_model_len: Optional[int] = None  # Control max input + output len
 
 
 @dataclass(slots=True)
