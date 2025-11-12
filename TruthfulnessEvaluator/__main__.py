@@ -47,6 +47,12 @@ def parse_args() -> argparse.Namespace:
         default=Path("truthfulness_evaluation_results"),
         help="Directory where run artifacts will be stored.",
     )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=1,
+        help="Number of dataset examples to send to the models per generation call.",
+    )
     return parser.parse_args()
 
 
@@ -65,6 +71,7 @@ def main() -> None:
         test_model=test_model_selection,
         judge_model=judge_model_selection,
         output_dir=args.output_dir,
+        batch_size=max(1, args.batch_size),
     )
 
     run_truthfulness_evaluation(pipeline_cfg)

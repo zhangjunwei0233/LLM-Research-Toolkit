@@ -31,3 +31,4 @@ class PipelineConfig:
     test_model: ModelSelection
     judge_model: ModelSelection
     output_dir: Path
+    batch_size: int = 1

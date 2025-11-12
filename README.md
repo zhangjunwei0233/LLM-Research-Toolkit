@@ -106,6 +106,7 @@ config = PipelineConfig(
     test_model=ModelSelection(name="gpt2", engine="vllm"),
     judge_model=ModelSelection(name="gpt2", engine="transformers"),
     output_dir=Path("truthfulness_evaluation_results"),
+    batch_size=8,
 )
 
 run_truthfulness_evaluation(config)
@@ -117,9 +118,11 @@ When invoking the CLI, reference the preset names backed by Python modules under
 ```bash
 python -m TruthfulnessEvaluator \
   --dataset truthfulqa \
-  --test-model gpt2 --test-engine vllm \
-  --judge-model gpt2 --judge-engine transformers \
-  --limit 10
+  --test-model gpt2 \
+  --judge-model gpt2 \
+  --engine vllm \
+  --limit 10 \
+  --batch-size 8
 ```
 
 Artifacts such as inference traces, judgement files, and summary reports are written to
@@ -133,8 +136,12 @@ answer to the judge, handling missing opening/closing tags gracefully.
 
 When running on multi-GPU machines (e.g., 4×A100s) and you do not pin a specific
 `device`, transformers-based models default to `device_map="auto"` so Hugging Face can
-shard weights across all GPUs. For even higher throughput, choose `--test-engine vllm`
+shard weights across all GPUs. For even higher throughput, choose `--engine vllm`
 (`ModelSelection(engine="vllm")` in code) to route inference through vLLM’s optimized
 runtime; it automatically uses all visible GPUs via tensor parallelism. vLLM requires a
 CUDA-enabled environment—if you are developing on a CPU-only machine, keep the engine
 set to `transformers` locally and switch to `vllm` only on GPU hosts.
+
+Use the `--batch-size` CLI parameter (or the matching `PipelineConfig.batch_size` field)
+to send multiple prompts per generation call for both the tested and judge models,
+significantly reducing wall-clock time on larger evaluations.

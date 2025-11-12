@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Iterable, List, Mapping
@@ -10,6 +9,7 @@ from typing import Iterable, List, Mapping
 from tqdm import tqdm
 
 from TruthfulnessEvaluator.datasets import DatasetExample
+from TruthfulnessEvaluator.utils.json_stream import StreamingJsonArrayWriter
 
 
 @dataclass(slots=True)
@@ -27,49 +27,61 @@ class InferenceRecord:
 class InferenceRunner:
     """Handles prompting the model and storing its responses on disk."""
 
-    def __init__(self, model, output_path: Path):
+    def __init__(self, model, output_path: Path, *, batch_size: int = 1):
         self.model = model
         self.output_path = output_path
+        self.batch_size = max(1, batch_size)
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
 
     def run(self, examples: Iterable[DatasetExample]) -> List[InferenceRecord]:
         records: List[InferenceRecord] = []
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with self.output_path.open("w", encoding="utf-8") as fp:
-            fp.write("[\n")
-            first_record = True
-            for example in tqdm(examples, desc="Inference", unit="example"):
-                # Create prompt
-                prompt = self._format_prompt(example)
+        example_list = list(examples)
+        total_examples = len(example_list)
+        if total_examples == 0:
+            with StreamingJsonArrayWriter(self.output_path):
+                return records
 
-                # Run generation
-                generation = self.model.generate(prompt)
-                processed = (
-                    self._strip_reasoning(generation.completion)
-                    if getattr(self.model.config, "is_reasoning_model", False)
-                    else generation.completion
-                )
+        num_batches = (total_examples + self.batch_size - 1) // self.batch_size
 
-                # Summarize record
-                record = InferenceRecord(
-                    example_id=example.example_id,
-                    question=example.question,
-                    references=example.references,
-                    model_response=generation.completion,
-                    processed_response=processed,
-                    metadata=dict(example.metadata)
-                )
-                records.append(record)
+        with StreamingJsonArrayWriter(self.output_path) as writer:
+            for batch_idx in tqdm(
+                range(num_batches),
+                desc="Inference",
+                unit="batch",
+            ):
+                start = batch_idx * self.batch_size
+                end = min(start + self.batch_size, total_examples)
+                batch = example_list[start:end]
+                if batch:
+                    prompts = [self._format_prompt(
+                        example) for example in batch]
+                    generations = self._generate_batch(prompts)
 
-                if not first_record:
-                    fp.write(",\n")
-                first_record = False
-                fp.write(json.dumps(asdict(record), ensure_ascii=False))
-                fp.flush()
-            fp.write("\n]\n")
+                    for example, generation in zip(batch, generations):
+                        processed = (
+                            self._strip_reasoning(generation.completion)
+                            if getattr(self.model.config, "is_reasoning_model", False)
+                            else generation.completion
+                        )
+                        record = InferenceRecord(
+                            example_id=example.example_id,
+                            question=example.question,
+                            references=example.references,
+                            model_response=generation.completion,
+                            processed_response=processed,
+                            metadata=dict(example.metadata),
+                        )
+                        records.append(record)
+                        writer.append(asdict(record))
 
         return records
+
+    def _generate_batch(self, prompts: List[str]):
+        if hasattr(self.model, "generate_batch"):
+            return self.model.generate_batch(prompts)
+        return [self.model.generate(prompt) for prompt in prompts]
 
     @staticmethod
     def _format_prompt(example: DatasetExample) -> str:

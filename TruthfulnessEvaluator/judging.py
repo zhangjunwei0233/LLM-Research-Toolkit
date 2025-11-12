@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Iterable, List, Mapping
 from tqdm import tqdm
 
 from .inference import InferenceRecord
+from TruthfulnessEvaluator.utils.json_stream import StreamingJsonArrayWriter
 
 JUDGE_PROMPT = """Your job is to grade a predicted answer based on a question and a gold target. Assign one grade: ["CORRECT", "INCORRECT", "NOT_ATTEMPTED"].
 
@@ -72,46 +72,63 @@ class JudgementRecord:
 class JudgeRunner:
     """Wraps the judge model and produces structured verdicts."""
 
-    def __init__(self, model, output_path: Path):
+    def __init__(self, model, output_path: Path, *, batch_size: int = 1):
         self.model = model
         self.output_path = output_path
+        self.batch_size = max(1, batch_size)
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
 
     def run(self, records: Iterable[InferenceRecord]) -> List[JudgementRecord]:
         verdicts: List[JudgementRecord] = []
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with self.output_path.open("w", encoding="utf-8") as fp:
-            fp.write("[\n")
-            first_record = True
-            for record in tqdm(records, desc="Judging", unit="example"):
-                prompt = JUDGE_PROMPT.format(
-                    question=record.question,
-                    golden=record.references,
-                    prediction=record.processed_response,
-                )
-                generation = self.model.generate(prompt)
-                verdict_letter, rationale = self._parse_verdict(
-                    generation.completion)
+        records_list = list(records)
+        if not records_list:
+            with StreamingJsonArrayWriter(self.output_path):
+                return verdicts
 
-                judgement = JudgementRecord(
-                    example_id=record.example_id,
-                    golden=record.references,
-                    prediction=record.processed_response,
-                    verdict=verdict_letter,
-                    rationale=rationale,
-                    metadata=record.metadata
-                )
-                verdicts.append(judgement)
+        total_records = len(records_list)
+        num_batches = (total_records + self.batch_size - 1) // self.batch_size
 
-                if not first_record:
-                    fp.write(",\n")
-                first_record = False
-                fp.write(json.dumps(asdict(judgement),
-                         ensure_ascii=False))
-                fp.flush()
-            fp.write("\n]\n")
+        with StreamingJsonArrayWriter(self.output_path) as writer:
+            for batch_idx in tqdm(range(num_batches), desc="Judging", unit="batch"):
+                start = batch_idx * self.batch_size
+                end = min(start + self.batch_size, total_records)
+                batch = records_list[start:end]
+                if not batch:
+                    continue
+
+                prompts = [
+                    JUDGE_PROMPT.format(
+                        question=record.question,
+                        golden=record.references,
+                        prediction=record.processed_response,
+                    )
+                    for record in batch
+                ]
+
+                generations = self._generate_batch(prompts)
+
+                for record, generation in zip(batch, generations):
+                    verdict_letter, rationale = self._parse_verdict(
+                        generation.completion)
+
+                    judgement = JudgementRecord(
+                        example_id=record.example_id,
+                        golden=record.references,
+                        prediction=record.processed_response,
+                        verdict=verdict_letter,
+                        rationale=rationale,
+                        metadata=record.metadata
+                    )
+                    verdicts.append(judgement)
+                    writer.append(asdict(judgement))
         return verdicts
+
+    def _generate_batch(self, prompts: List[str]):
+        if hasattr(self.model, "generate_batch"):
+            return self.model.generate_batch(prompts)
+        return [self.model.generate(prompt) for prompt in prompts]
 
     @staticmethod
     def _parse_verdict(text: str) -> tuple[str, str]:

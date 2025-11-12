@@ -29,20 +29,27 @@ class TruthfulnessPipeline:
         )
 
         test_model = create_model_runner(self.config.test_model, role="test")
+        if hasattr(test_model, "config"):
+            test_model.config.batch_size = self.config.batch_size
         try:
             inference_runner = InferenceRunner(
                 model=test_model,
                 output_path=self.run_dir / "inference_outputs.json",
+                batch_size=self.config.batch_size,
             )
             inference_records = inference_runner.run(dataset_loader.load())
         finally:
             test_model.unload()
 
-        judge_model = create_model_runner(self.config.judge_model, role="judge")
+        judge_model = create_model_runner(
+            self.config.judge_model, role="judge")
+        if hasattr(judge_model, "config"):
+            judge_model.config.batch_size = self.config.batch_size
         try:
             judge_runner = JudgeRunner(
                 model=judge_model,
                 output_path=self.run_dir / "judgements.json",
+                batch_size=self.config.batch_size,
             )
             judgements = judge_runner.run(inference_records)
         finally:
