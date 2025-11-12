@@ -7,7 +7,7 @@ from pathlib import Path
 
 from TruthfulnessEvaluator.config import PipelineConfig
 from TruthfulnessEvaluator.datasets import create_dataset_loader
-from TruthfulnessEvaluator.models import create_judge_model_runner, create_test_model_runner
+from TruthfulnessEvaluator.models import create_model_runner
 from TruthfulnessEvaluator.inference import InferenceRunner
 from TruthfulnessEvaluator.judging import JudgeRunner
 from TruthfulnessEvaluator.reporting import ReportBuilder
@@ -28,7 +28,7 @@ class TruthfulnessPipeline:
             limit=self.config.dataset.limit,
         )
 
-        test_model = create_test_model_runner(self.config.test_model.name)
+        test_model = create_model_runner(self.config.test_model, role="test")
         try:
             inference_runner = InferenceRunner(
                 model=test_model,
@@ -38,7 +38,7 @@ class TruthfulnessPipeline:
         finally:
             test_model.unload()
 
-        judge_model = create_judge_model_runner(self.config.judge_model.name)
+        judge_model = create_model_runner(self.config.judge_model, role="judge")
         try:
             judge_runner = JudgeRunner(
                 model=judge_model,

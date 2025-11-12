@@ -17,9 +17,10 @@ class DatasetSelection:
 
 @dataclass(slots=True)
 class ModelSelection:
-    """Identifies which preset module to use for a model."""
+    """Identifies which preset module and engine to use for a model."""
 
     name: str
+    engine: str = "transformers"
 
 
 @dataclass(slots=True)

@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Iterable, List, Mapping
 from tqdm import tqdm
 
-from TruthfulnessEvaluator.models import LocalModelRunner
 from .inference import InferenceRecord
 
 JUDGE_PROMPT = """Your job is to grade a predicted answer based on a question and a gold target. Assign one grade: ["CORRECT", "INCORRECT", "NOT_ATTEMPTED"].
@@ -73,7 +72,7 @@ class JudgementRecord:
 class JudgeRunner:
     """Wraps the judge model and produces structured verdicts."""
 
-    def __init__(self, model: LocalModelRunner, output_path: Path):
+    def __init__(self, model, output_path: Path):
         self.model = model
         self.output_path = output_path
         self.output_path.parent.mkdir(parents=True, exist_ok=True)

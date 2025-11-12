@@ -9,7 +9,6 @@ from typing import Iterable, List, Mapping
 
 from tqdm import tqdm
 
-from TruthfulnessEvaluator.models import LocalModelRunner
 from TruthfulnessEvaluator.datasets import DatasetExample
 
 
@@ -28,7 +27,7 @@ class InferenceRecord:
 class InferenceRunner:
     """Handles prompting the model and storing its responses on disk."""
 
-    def __init__(self, model: LocalModelRunner, output_path: Path):
+    def __init__(self, model, output_path: Path):
         self.model = model
         self.output_path = output_path
         self.output_path.parent.mkdir(parents=True, exist_ok=True)

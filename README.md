@@ -96,13 +96,16 @@ prompt templates, or judge strategies can be added with minimal changes.
 ### Running the pipeline
 
 ```python
+from pathlib import Path
+
 from TruthfulnessEvaluator import PipelineConfig, run_truthfulness_evaluation
-from TruthfulnessEvaluator.config import DatasetSelection, ModelPreset
+from TruthfulnessEvaluator.config import DatasetSelection, ModelSelection
 
 config = PipelineConfig(
     dataset=DatasetSelection(name="truthfulqa", limit=50),
-    test_model=ModelPreset(name="gpt2"),
-    judge=ModelPreset(name="gpt2"),
+    test_model=ModelSelection(name="gpt2", engine="vllm"),
+    judge_model=ModelSelection(name="gpt2", engine="transformers"),
+    output_dir=Path("truthfulness_evaluation_results"),
 )
 
 run_truthfulness_evaluation(config)
@@ -112,7 +115,11 @@ When invoking the CLI, reference the preset names backed by Python modules under
 `TruthfulnessEvaluator/datasets/` and `TruthfulnessEvaluator/models/`:
 
 ```bash
-python -m TruthfulnessEvaluator --dataset truthfulqa --test-model gpt2 --judge-model gpt2 --limit 10
+python -m TruthfulnessEvaluator \
+  --dataset truthfulqa \
+  --test-model gpt2 --test-engine vllm \
+  --judge-model gpt2 --judge-engine transformers \
+  --limit 10
 ```
 
 Artifacts such as inference traces, judgement files, and summary reports are written to
@@ -123,3 +130,11 @@ modules (e.g., tweak `datasets/truthfulqa.py` or create `models/my_model.py` tha
 returns tailored runners). If a preset sets `is_reasoning_model=True`, the pipeline
 automatically strips `<think>...</think>` reasoning traces and only forwards the final
 answer to the judge, handling missing opening/closing tags gracefully.
+
+When running on multi-GPU machines (e.g., 4×A100s) and you do not pin a specific
+`device`, transformers-based models default to `device_map="auto"` so Hugging Face can
+shard weights across all GPUs. For even higher throughput, choose `--test-engine vllm`
+(`ModelSelection(engine="vllm")` in code) to route inference through vLLM’s optimized
+runtime; it automatically uses all visible GPUs via tensor parallelism. vLLM requires a
+CUDA-enabled environment—if you are developing on a CPU-only machine, keep the engine
+set to `transformers` locally and switch to `vllm` only on GPU hosts.

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from .base import ModelConfig, LocalModelRunner
+from .base import ModelConfig
 
 _TEST_MODEL_CONFIG = ModelConfig(
     model_name="openai-community/gpt2",
@@ -25,11 +25,11 @@ _JUDGE_MODEL_CONFIG = ModelConfig(
 )
 
 
-def create_test_model_runner() -> LocalModelRunner:
-    """Return default generation settings for GPT-2 as the testes model."""
-    return LocalModelRunner(replace(_TEST_MODEL_CONFIG))
+def get_test_model_config() -> ModelConfig:
+    """Return default generation settings for GPT-2 as the tested model."""
+    return replace(_TEST_MODEL_CONFIG)
 
 
-def create_judge_model_runner() -> LocalModelRunner:
+def get_judge_model_config() -> ModelConfig:
     """Return judge-specific settings for GPT-2."""
-    return LocalModelRunner(replace(_JUDGE_MODEL_CONFIG))
+    return replace(_JUDGE_MODEL_CONFIG)
