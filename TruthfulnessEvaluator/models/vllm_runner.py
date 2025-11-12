@@ -17,13 +17,15 @@ class VLLMModelRunner:
     def __init__(self, config: ModelConfig):
         self.config = config
         tensor_parallel = (
-            config.tensor_parallel_size
-            if config.tensor_parallel_size is not None
+            config.vllm_tensor_parallel_size
+            if config.vllm_tensor_parallel_size is not None
             else max(1, torch.cuda.device_count() or 1)
         )
         self._llm: Optional[LLM] = LLM(
             model=config.model_name,
             tensor_parallel_size=tensor_parallel,
+            gpu_memory_utilization=config.vllm_gpu_memory_utilization,
+            max_num_seqs=config.vllm_max_num_seqs,
         )
         self._is_unloaded = False
 
