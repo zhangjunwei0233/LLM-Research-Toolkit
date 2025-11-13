@@ -126,6 +126,16 @@ python -m TruthfulnessEvaluator \
   --batch-size 8
 ```
 
+Every run directory stores its resolved configuration at `config.json`. To resume a
+previous attempt that halted mid-way, point the CLI to the existing run directory:
+
+```bash
+python -m TruthfulnessEvaluator --resume truthfulness_evaluation_results/run_20240101-120000
+```
+
+The pipeline inspects which artifacts (inference, judgements, summary) already exist
+and continues from the first incomplete stage.
+
 Artifacts such as inference traces, judgement files, and summary reports are written to
 `truthfulness_artifacts/run_<timestamp>/`. Extendability hooks live in
 `TruthfulnessEvaluator/datasets/`, `TruthfulnessEvaluator/inference.py`, and

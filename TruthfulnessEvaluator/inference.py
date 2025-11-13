@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Iterable, List, Mapping
@@ -80,6 +81,15 @@ class InferenceRunner:
                         writer.append(asdict(record))
 
         return records
+
+    @staticmethod
+    def load_records(path: Path) -> List[InferenceRecord]:
+        """Load previously saved inference outputs from disk."""
+        if not path.exists():
+            raise FileNotFoundError(f"Inference outputs not found at {path}")
+        with path.open("r", encoding="utf-8") as fp:
+            data = json.load(fp)
+        return [InferenceRecord(**item) for item in data]
 
     def _generate_batch(self, prompts: List[str]):
         if hasattr(self.model, "generate_batch"):

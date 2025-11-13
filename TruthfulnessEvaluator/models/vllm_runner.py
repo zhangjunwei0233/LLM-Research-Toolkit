@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import gc
+import json
+from dataclasses import asdict
 from typing import List, Optional
 
 import torch
@@ -30,6 +32,7 @@ class VLLMModelRunner:
             swap_space=config.vllm_swap_space,
         )
         self._is_unloaded = False
+        self._log_configuration()
 
     def unload(self) -> None:
         if self._is_unloaded:
@@ -84,3 +87,8 @@ class VLLMModelRunner:
                 completion_tokens_num=completion_tokens,
             ))
         return generations
+
+    def _log_configuration(self) -> None:
+        config_payload = asdict(self.config)
+        print("[model] vLLM runner initialized with config:")
+        print(json.dumps(config_payload, indent=2, sort_keys=True))

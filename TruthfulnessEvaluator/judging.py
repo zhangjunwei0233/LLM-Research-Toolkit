@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Iterable, List, Mapping
@@ -97,6 +98,7 @@ class JudgementRecord:
     """Judge verdict and justification."""
 
     example_id: int
+    question: str
     golden: List[str]
     prediction: str
     verdict: str  # A / B / C / D / E
@@ -155,6 +157,7 @@ class JudgeRunner:
 
                     judgement = JudgementRecord(
                         example_id=record.example_id,
+                        question=record.question,
                         golden=record.references,
                         prediction=record.processed_response,
                         verdict=verdict_letter,
@@ -164,6 +167,15 @@ class JudgeRunner:
                     verdicts.append(judgement)
                     writer.append(asdict(judgement))
         return verdicts
+
+    @staticmethod
+    def load_records(path: Path) -> List[JudgementRecord]:
+        """Load previously saved judgements from disk."""
+        if not path.exists():
+            raise FileNotFoundError(f"Judgements file not found at {path}")
+        with path.open("r", encoding="utf-8") as fp:
+            data = json.load(fp)
+        return [JudgementRecord(**item) for item in data]
 
     def _generate_batch(self, prompts: List[str]):
         if hasattr(self.model, "generate_batch"):

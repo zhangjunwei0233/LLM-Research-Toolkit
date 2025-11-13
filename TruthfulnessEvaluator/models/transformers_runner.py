@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import gc
+import json
+from dataclasses import asdict
 from typing import List, Optional
 
 import torch
@@ -55,6 +57,7 @@ class TransformersModelRunner:
         self.model.eval()  # type: ignore
 
         self._is_unloaded = False
+        self._log_configuration()
 
     def unload(self) -> None:
         """Free model/tokenizer memory so another model can be loaded."""
@@ -137,3 +140,8 @@ class TransformersModelRunner:
                 completion_tokens_num=int(len(completion_ids)),
             ))
         return generations
+
+    def _log_configuration(self) -> None:
+        config_payload = asdict(self.config)
+        print("[model] transformers runner initialized with config:")
+        print(json.dumps(config_payload, indent=2, sort_keys=True))
