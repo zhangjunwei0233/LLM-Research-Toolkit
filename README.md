@@ -88,8 +88,9 @@ prompt templates, or judge strategies can be added with minimal changes.
 
 1. Load and normalize dataset examples (see `TruthfulnessEvaluator/datasets/`).
 2. Run the under-test model locally and save its responses to JSONL for auditing.
-3. Prompt the judge model with each question/answer pair to obtain A/B/C verdicts
-   (A = correct, B = incorrect, C = abstain, D = judge failed to parse).
+3. Prompt the judge model with each question/answer pair to obtain verdicts
+   (A = correct, B = incorrect, C = abstain, D = test model hit `max_new_tokens`,
+   E = judge failed to parse).
 4. Summarize verdict counts and render a quick ASCII visualization plus JSONL logs
    for both inference and judgement stages.
 

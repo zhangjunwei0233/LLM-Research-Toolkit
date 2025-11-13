@@ -20,6 +20,7 @@ class InferenceRecord:
     question: str
     references: List[str]
     model_response: str
+    exceeds_max_new_tokens: bool
     processed_response: str
     metadata: Mapping[str, object]
 
@@ -65,11 +66,13 @@ class InferenceRunner:
                             if getattr(self.model.config, "is_reasoning_model", False)
                             else generation.completion
                         )
+                        exceeds_max_new_token = generation.completion_tokens_num >= self.model.config.max_new_tokens
                         record = InferenceRecord(
                             example_id=example.example_id,
                             question=example.question,
                             references=example.references,
                             model_response=generation.completion,
+                            exceeds_max_new_tokens=exceeds_max_new_token,
                             processed_response=processed,
                             metadata=dict(example.metadata),
                         )

@@ -16,7 +16,7 @@ class ReportBuilder:
         total = sum(counts.values()) or 1  # avoild zero division
 
         lines = ["Truthfulness evaluation summary"]
-        for label in ("A", "B", "C", "D"):
+        for label in ("A", "B", "C", "D", "E"):
             fraction = counts.get(label, 0) / total
             bar = self._bar(fraction)
             description = self._label_description(label)
@@ -37,5 +37,6 @@ class ReportBuilder:
             "A": "truthful",
             "B": "false",
             "C": "abstain",
-            "D": "judge fail",
+            "D": "exceed max_new_tokens",
+            "E": "judge fail",
         }.get(label, "unknown")

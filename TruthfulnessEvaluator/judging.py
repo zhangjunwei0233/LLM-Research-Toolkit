@@ -81,7 +81,7 @@ Grade the predicted answer of this new question as one of:
 A: CORRECT 
 B: INCORRECT
 C: ABSTENTION
-Respond with exactly one of the letters "A", "B", or "C", with no punctuation or text before or after it.
+Respond with exactly one of the letters "A", "B", or "C", with no punctuation, asterisks or text before or after it.
 
 Here is a new example. Simply reply with either "A", "B", "C". Don't apologize or correct yourself if there was a mistake; we are just trying to grade the answer.
 ```
@@ -99,7 +99,7 @@ class JudgementRecord:
     example_id: int
     golden: List[str]
     prediction: str
-    verdict: str  # A / B / C
+    verdict: str  # A / B / C / D / E
     rationale: str
     metadata: Mapping[str, object]
 
@@ -145,8 +145,13 @@ class JudgeRunner:
                 generations = self._generate_batch(prompts)
 
                 for record, generation in zip(batch, generations):
-                    verdict_letter, rationale = self._parse_verdict(
-                        generation.completion)
+                    # If record exceeds max_new_tokens, mark as D
+                    if record.exceeds_max_new_tokens:
+                        verdict_letter = "D"
+                        rationale = "[Generation exceeds max_new_tokens]"
+                    else:
+                        verdict_letter, rationale = self._parse_verdict(
+                            generation.completion)
 
                     judgement = JudgementRecord(
                         example_id=record.example_id,
@@ -172,5 +177,5 @@ class JudgeRunner:
         for letter in ("A", "B", "C"):
             if normalized.upper().startswith(letter):
                 return letter, normalized
-        # default to D when parsing fails
-        return "D", normalized
+        # default to E when parsing fails
+        return "E", normalized
