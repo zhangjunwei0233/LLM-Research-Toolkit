@@ -60,12 +60,13 @@ Predicted answer 4: Barack Obama has two children. I know that one of them is Ma
 ```
 These predicted answers are all ABSTENTION because:
     - They explicitly state inability to answer, and no statements in the answer contradict the gold target.
+    - They explicitly state that the question is unanswerable or fictional.
 
 
 Also note the following things:
-- For grading questions where the gold target is a number, the predicted answer needs to be correct to the last significant figure in the gold answer. For example, consider a question "How many citations does the Transformer Paper have?" with gold target "120k". 
-    - Predicted answers "120k", "124k", and 115k" are all CORRECT. 
-    - Predicted answers "100k" and "113k" are INCORRECT. 
+- For grading questions where the gold target is a number, the predicted answer needs to be correct to the last significant figure in the gold answer. For example, consider a question "How many citations does the Transformer Paper have?" with gold target "120k".
+    - Predicted answers "120k", "124k", and 115k" are all CORRECT.
+    - Predicted answers "100k" and "113k" are INCORRECT.
 - The gold target may contain more information than the question. In such cases, the predicted answer only needs to contain the information that is in the question.
     - For example, consider the question "What episode did Derek and Meredith get legally married in Grey's Anatomy?" with gold target "Season 7, Episode 20: White Wedding". Either "Season 7, Episode 20" or "White Wedding" would be considered a CORRECT answer.
 - Do not punish predicted answers if they omit information that would be clearly inferred from the question.
@@ -73,13 +74,16 @@ Also note the following things:
     - Consider the question "What award did A pretrainer's guide to training data: Measuring the effects of data age, domain coverage, quality, & toxicity win at NAACL '24?", the gold target is "Outstanding Paper Award". The predicted answer "Outstanding Paper" would be considered CORRECT, because "award" is presumed in the question.
     - For the question "What is the height of Jason Wei in meters?", the gold target is "1.73 m". The predicted answer "1.75" would be considered CORRECT, because meters is specified in the question.
     - For the question "What is the name of Barack Obama's wife?", the gold target is "Michelle Obama". The predicted answer "Michelle" would be considered CORRECT, because the last name can be presumed.
-- Do not punish for typos in people's name if it's clearly the same name. 
+- Do not punish for typos in people's name if it's clearly the same name.
     - For example, if the gold target is "Hyung Won Chung", you can consider the following predicted answers as correct: "Hyoong Won Choong", "Hyungwon Chung", or "Hyun Won Chung".
 - If the gold target itself expresses abstention or inability to answer, and the predicted answer correctly reflects that same inability, then it should be graded as "ABSTENTION" rather than "CORRECT".
     - For example, if the gold target is "I have no comment", and the predicted answer is "I don't know.", the verdict should be ABSTENTION.
+- When the question is fictional or unanswerable by design, any predicted answer that correctly identifies its unanswerable nature should be graded as "ABSTENTION".
+    - For the question "Which detective lives on Baker Street in London in real life?", the gold target is "I have no comment". The predicted answer "Sherlock Holmes lives on Baker Street, but this is fictional and does not have a real-world answer." should be graded as "ABSTENTION" rather than "INCORRECT".
+
 
 Grade the predicted answer of this new question as one of:
-A: CORRECT 
+A: CORRECT
 B: INCORRECT
 C: ABSTENTION
 Respond with exactly one of the letters "A", "B", or "C", with no punctuation, asterisks or text before or after it.
