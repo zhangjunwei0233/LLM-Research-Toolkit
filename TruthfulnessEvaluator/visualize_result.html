@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%">
+
+<head>
+    <meta charset="utf-8">
+    <title>Truthfulness Evaluation Result on SimpleQA</title>
+</head>
+
+<body style="height: 100%; margin: 0">
+    <div id="container" style="height: 100%"></div>
+
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+
+    <script type="text/javascript">
+        var dom = document.getElementById('container');
+        var myChart = echarts.init(dom, null, {
+            renderer: 'canvas',
+            useDirtyRect: false
+        });
+
+        const colors = ['#B6D634', '#FFD10A', '#FB628B', '#5070DD', '#505372']; // Correct, Abstain, Wrong, Exceed, Judge
+
+        const models = ['Base model', 'KnowRL', 'LtRfF'];
+        const prompts = ['QA Prompt', 'Simple Prompt', 'Truthful Prompt'];
+
+        // ---- 原始计数数据（3 个模型） ----
+        const baseData = [
+            [1293, 1432, 1320],  // correct
+            [339, 957, 2046],    // abstain
+            [6797, 6859, 6232],  // wrong
+            [1571, 750, 401],    // exceed limit
+            [0, 2, 1]         // judge fail
+        ];
+
+        const knowData = [
+            [1351, 1463, 1495],
+            [184, 350, 751],
+            [7282, 7369, 7168],
+            [1178, 818, 586],
+            [0, 0, 0]
+        ];
+
+        const ltrffData = [
+            [1391, 1412, 1366],
+            [703, 1223, 1906],
+            [6787, 6471, 5888],
+            [1118, 894, 840],
+            [1, 0, 0]
+        ];
+
+        // 把三个模型拼接成一条长轴（9 个柱子）
+        const rawData = [];
+        for (let k = 0; k < 5; ++k) { // 5 种结果
+            rawData.push([
+                ...baseData[k],
+                ...knowData[k],
+                ...ltrffData[k]
+            ]);
+        }
+
+        // 每个柱子的总数
+        const totalData = [];
+        for (let i = 0; i < rawData[0].length; ++i) {
+            let sum = 0;
+            for (let j = 0; j < rawData.length; ++j) {
+                sum += rawData[j][i];
+            }
+            totalData.push(sum);
+        }
+
+        const grid = {
+            left: 80,
+            right: 40,
+            top: 120,
+            bottom: 100
+        };
+
+        const gridWidth = myChart.getWidth() - grid.left - grid.right;
+        const gridHeight = myChart.getHeight() - grid.top - grid.bottom;
+        const categoryCount = rawData[0].length; // 9
+        const categoryWidth = gridWidth / categoryCount;
+        const barWidth = categoryWidth * 0.6;
+        const barPadding = (categoryWidth - barWidth) / 2;
+
+        // 系列（按比例）
+        const series = [
+            'Correct',
+            'Abstain',
+            'Wrong',
+            'Exceed limit',
+            'Judge fail'
+        ].map((name, sid) => {
+            return {
+                name,
+                type: 'bar',
+                stack: 'total',
+                itemStyle: {
+                    color: colors[sid]
+                },
+                barWidth: '60%',
+                label: {
+                    show: true,
+                    formatter: (params) => {
+                        const v = params.value;
+                        return Math.round(v * 1000) / 10 + '%';  // 一位小数
+                    }
+                },
+                data: rawData[sid].map((d, did) =>
+                    totalData[did] <= 0 ? 0 : d / totalData[did]
+                )
+            };
+        });
+
+        // 流动的多边形（连接相邻两根柱子）
+        const elements = [];
+        for (let j = 1; j < categoryCount; ++j) {
+            if (j === 3 || j === 6) continue;
+
+            const leftX = grid.left + categoryWidth * j - barPadding;
+            const rightX = leftX + barPadding * 2;
+            let leftY = grid.top + gridHeight;
+            let rightY = leftY;
+            for (let i = 0; i < series.length; ++i) {
+                const points = [];
+                const leftBarHeight = (rawData[i][j - 1] / totalData[j - 1]) * gridHeight;
+                points.push([leftX, leftY]);
+                points.push([leftX, leftY - leftBarHeight]);
+                const rightBarHeight = (rawData[i][j] / totalData[j]) * gridHeight;
+                points.push([rightX, rightY - rightBarHeight]);
+                points.push([rightX, rightY]);
+                points.push([leftX, leftY]);
+                leftY -= leftBarHeight;
+                rightY -= rightBarHeight;
+                elements.push({
+                    type: 'polygon',
+                    shape: {
+                        points
+                    },
+                    style: {
+                        fill: colors[i],
+                        opacity: 0.25
+                    }
+                });
+            }
+        }
+
+        // 底部三个模型的大标题
+        const modelNames = ['Base model', 'KnowRL', 'LtRfF'];
+        for (let m = 0; m < models.length; ++m) {
+            const startIndex = m * prompts.length;        // 每组三个柱子
+            const endIndex = startIndex + prompts.length - 1;
+            const centerIndex = (startIndex + endIndex) / 2 + 0.5;
+            const centerX = grid.left + categoryWidth * centerIndex;
+            const y = grid.top + gridHeight + 60;
+
+            elements.push({
+                type: 'text',
+                style: {
+                    x: centerX,
+                    y: y,
+                    text: modelNames[m],
+                    fontSize: 24,
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                    textVerticalAlign: 'middle'
+                }
+            });
+        }
+
+        // x 轴标签：三个 Prompt × 三个模型
+        const xAxisLabels = [
+            ...prompts,
+            ...prompts,
+            ...prompts
+        ];
+
+        const option = {
+            title: {
+                text: 'Truthfulness Evaluation Result on HaluEvalQA',
+                left: 'center',
+                top: 30,
+                textStyle: {
+                    fontSize: 28,
+                    fontWeight: 'bold'
+                }
+            },
+            legend: {
+                selectedMode: false,
+                top: 70
+            },
+            grid: grid,
+            yAxis: {
+                type: 'value',
+                max: 1,
+                axisLabel: {
+                    formatter: (v) => Math.round(v * 100) + '%'
+                }
+            },
+            xAxis: {
+                type: 'category',
+                axisLabel: {
+                    interval: 0
+                },
+                data: xAxisLabels
+            },
+            series: series,
+            graphic: {
+                elements: elements
+            }
+        };
+
+        myChart.setOption(option);
+        window.addEventListener('resize', myChart.resize);
+    </script>
+</body>
+
+</html>
