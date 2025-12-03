@@ -41,6 +41,8 @@ def _get_model_config(name: str, role: Literal["test", "judge"]) -> ModelConfig:
 def create_model_runner(selection: ModelSelection, role: Literal["test", "judge"]):
     """Instantiate a model runner using the configured engine."""
     config = _get_model_config(selection.name, role)
+    if selection.vllm_tensor_parallel_size is not None:
+        config.vllm_tensor_parallel_size = selection.vllm_tensor_parallel_size
     engine = selection.engine.lower()
     if engine == "vllm":
         try:

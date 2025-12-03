@@ -21,6 +21,7 @@ class ModelSelection:
 
     name: str
     engine: str = "transformers"
+    vllm_tensor_parallel_size: Optional[int] = None
 
 
 @dataclass(slots=True)

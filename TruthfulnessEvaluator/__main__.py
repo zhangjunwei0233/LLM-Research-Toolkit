@@ -34,6 +34,11 @@ def parse_args() -> argparse.Namespace:
         help="Engine to run the under-test model (default: %(default)s).",
     )
     parser.add_argument(
+        "--tensor-parallel-size",
+        type=int,
+        help="Override tensor parallel degree for vLLM. Defaults to using all visible GPUs.",
+    )
+    parser.add_argument(
         "--limit",
         type=int,
         default=None,
@@ -84,9 +89,15 @@ def main() -> None:
         dataset_selection = DatasetSelection(
             name=args.dataset, limit=args.limit)
         test_model_selection = ModelSelection(
-            name=args.test_model, engine=args.engine)
+            name=args.test_model,
+            engine=args.engine,
+            vllm_tensor_parallel_size=args.tensor_parallel_size,
+        )
         judge_model_selection = ModelSelection(
-            name=args.judge_model, engine=args.engine)
+            name=args.judge_model,
+            engine=args.engine,
+            vllm_tensor_parallel_size=args.tensor_parallel_size,
+        )
 
         pipeline_cfg = PipelineConfig(
             dataset=dataset_selection,
