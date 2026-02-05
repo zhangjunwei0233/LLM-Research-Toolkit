@@ -22,6 +22,7 @@ class ModelSelection:
     name: str
     engine: str = "transformers"
     vllm_tensor_parallel_size: Optional[int] = None
+    ignore_eos: Optional[bool] = None
 
 
 @dataclass(slots=True)

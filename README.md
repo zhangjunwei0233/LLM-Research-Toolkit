@@ -126,6 +126,22 @@ python -m TruthfulnessEvaluator \
   --batch-size 8
 ```
 
+CLI parameters:
+
+| flag | description |
+| --- | --- |
+| `--dataset` | Dataset preset name (module under `TruthfulnessEvaluator/datasets/`). Required unless `--resume` is used. |
+| `--test-model` | Model preset for the under-test model (module under `TruthfulnessEvaluator/models/`). Required unless `--resume` is used. |
+| `--judge-model` | Model preset for the judge model (module under `TruthfulnessEvaluator/models/`). Required unless `--resume` is used. |
+| `--engine` | Engine for the under-test model. Choices: `transformers`, `vllm`. |
+| `--tensor-parallel-size` | vLLM tensor parallel degree override (defaults to all visible GPUs). |
+| `--limit` | Optional number of dataset examples to evaluate. |
+| `--output-dir` | Directory where run artifacts will be stored. |
+| `--batch-size` | Number of examples per generation call for both test and judge models. |
+| `--resume` | Resume a previous run from the provided directory. |
+| `--ignore-eos` | Ignore EOS during generation; rely on `max_new_tokens`. |
+| `--no-ignore-eos` | Respect EOS during generation (default). |
+
 Every run directory stores its resolved configuration at `config.json`. To resume a
 previous attempt that halted mid-way, point the CLI to the existing run directory:
 

@@ -122,6 +122,7 @@ class TransformersModelRunner:
                 temperature=self.config.temperature,
                 do_sample=self.config.temperature > 0.0,
                 pad_token_id=tokenizer.pad_token_id,
+                eos_token_id=None if self.config.ignore_eos else tokenizer.eos_token_id,
             )
 
         generations: List[ModelGeneration] = []

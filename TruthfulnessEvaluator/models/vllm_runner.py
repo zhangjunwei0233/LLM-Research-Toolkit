@@ -73,6 +73,7 @@ class VLLMModelRunner:
         sampling_params = SamplingParams(
             temperature=self.config.temperature,
             max_tokens=self.config.max_new_tokens,
+            ignore_eos=self.config.ignore_eos,
         )
         outputs = self._llm.generate(prompts, sampling_params)
         generations: List[ModelGeneration] = []

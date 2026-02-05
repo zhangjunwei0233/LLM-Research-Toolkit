@@ -43,6 +43,8 @@ def create_model_runner(selection: ModelSelection, role: Literal["test", "judge"
     config = _get_model_config(selection.name, role)
     if selection.vllm_tensor_parallel_size is not None:
         config.vllm_tensor_parallel_size = selection.vllm_tensor_parallel_size
+    if selection.ignore_eos is not None:
+        config.ignore_eos = selection.ignore_eos
     engine = selection.engine.lower()
     if engine == "vllm":
         try:

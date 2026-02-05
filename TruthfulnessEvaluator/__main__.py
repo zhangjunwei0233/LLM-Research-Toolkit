@@ -39,6 +39,19 @@ def parse_args() -> argparse.Namespace:
         help="Override tensor parallel degree for vLLM. Defaults to using all visible GPUs.",
     )
     parser.add_argument(
+        "--ignore-eos",
+        dest="ignore_eos",
+        action="store_true",
+        help="Ignore EOS during generation; rely on max_new_tokens.",
+    )
+    parser.add_argument(
+        "--no-ignore-eos",
+        dest="ignore_eos",
+        action="store_false",
+        help="Respect EOS during generation (default).",
+    )
+    parser.set_defaults(ignore_eos=None)
+    parser.add_argument(
         "--limit",
         type=int,
         default=None,
@@ -92,11 +105,13 @@ def main() -> None:
             name=args.test_model,
             engine=args.engine,
             vllm_tensor_parallel_size=args.tensor_parallel_size,
+            ignore_eos=args.ignore_eos,
         )
         judge_model_selection = ModelSelection(
             name=args.judge_model,
             engine=args.engine,
             vllm_tensor_parallel_size=args.tensor_parallel_size,
+            ignore_eos=args.ignore_eos,
         )
 
         pipeline_cfg = PipelineConfig(

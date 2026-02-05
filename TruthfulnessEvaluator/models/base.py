@@ -17,6 +17,7 @@ class ModelConfig:
     device_map: Optional[str] = None
     batch_size: int = 1
     is_reasoning_model: bool = False
+    ignore_eos: bool = False
 
     # Parameters for vllm
     vllm_tensor_parallel_size: Optional[int] = None
