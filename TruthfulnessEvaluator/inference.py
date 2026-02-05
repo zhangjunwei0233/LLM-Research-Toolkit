@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, asdict
 from pathlib import Path
-from typing import Iterable, List, Mapping
+from typing import Iterable, List, Mapping, Sequence, cast
 
 from tqdm import tqdm
 
@@ -167,9 +167,65 @@ class InferenceRunner:
             return self.model.generate_batch(prompts)
         return [self.model.generate(prompt) for prompt in prompts]
 
+    def _format_prompt(self, example: DatasetExample) -> str:
+        user_prompt = INFERENCE_QA_PROMPT.format(question=example.question)
+        chat_messages = [
+            {
+                "role": "system",
+                "content": "You are a question answering model, answer the following questions with a single entity, as concise as possible."
+            },
+            {
+                "role": "user",
+                "content": user_prompt
+            }
+        ]
+        return self._apply_chat_template(chat_messages)
+
+    def _apply_chat_template(self, messages: Sequence[Mapping[str, str]]) -> str:
+        tokenizer = getattr(self.model, "tokenizer", None)
+        if tokenizer is not None:
+            apply_chat = getattr(tokenizer, "apply_chat_template", None)
+            if callable(apply_chat):
+                try:
+                    rendered = apply_chat(
+                        messages,
+                        tokenize=False,
+                        add_generation_prompt=True,
+                    )
+                    return cast(str, rendered)
+                except TypeError:
+                    rendered = apply_chat(messages, tokenize=False)
+                    return cast(str, rendered)
+                except Exception as exc:
+                    print(
+                        f"[inference] chat template failed ({exc}); using fallback prompt rendering."
+                    )
+            else:
+                print(
+                    "[inference] tokenizer lacks apply_chat_template; using fallback prompt rendering."
+                )
+        else:
+            print(
+                "[inference] tokenizer unavailable; using fallback prompt rendering."
+            )
+        return self._render_chat_fallback(messages)
+
     @staticmethod
-    def _format_prompt(example: DatasetExample) -> str:
-        return INFERENCE_FEW_SHOT_PROMPT.format(question=example.question)
+    def _render_chat_fallback(messages: Sequence[Mapping[str, str]]) -> str:
+        rendered: List[str] = []
+        for message in messages:
+            role = str(message.get("role", "user")).strip().lower()
+            content = str(message.get("content", "")).strip()
+            if not content:
+                continue
+            if role == "system":
+                rendered.append(f"System: {content}")
+            elif role == "assistant":
+                rendered.append(f"Assistant: {content}")
+            else:
+                rendered.append(f"User: {content}")
+        rendered.append("Assistant:")
+        return "\n".join(rendered)
 
     @staticmethod
     def _strip_reasoning(text: str) -> str:
