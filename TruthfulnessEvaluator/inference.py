@@ -104,6 +104,7 @@ class InferenceRunner:
         self.model = model
         self.output_path = output_path
         self.batch_size = max(1, batch_size)
+        self._logged_chat_fallback = False
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
 
     def run(self, examples: Iterable[DatasetExample]) -> List[InferenceRecord]:
@@ -197,18 +198,24 @@ class InferenceRunner:
                     rendered = apply_chat(messages, tokenize=False)
                     return cast(str, rendered)
                 except Exception as exc:
-                    print(
-                        f"[inference] chat template failed ({exc}); using fallback prompt rendering."
+                    self._log_chat_fallback_once(
+                        f"chat template failed ({exc})"
                     )
             else:
-                print(
-                    "[inference] tokenizer lacks apply_chat_template; using fallback prompt rendering."
+                self._log_chat_fallback_once(
+                    "tokenizer lacks apply_chat_template"
                 )
         else:
-            print(
-                "[inference] tokenizer unavailable; using fallback prompt rendering."
-            )
+            self._log_chat_fallback_once("tokenizer unavailable")
         return self._render_chat_fallback(messages)
+
+    def _log_chat_fallback_once(self, reason: str) -> None:
+        if self._logged_chat_fallback:
+            return
+        print(
+            f"[inference] {reason}; using fallback prompt rendering."
+        )
+        self._logged_chat_fallback = True
 
     @staticmethod
     def _render_chat_fallback(messages: Sequence[Mapping[str, str]]) -> str:

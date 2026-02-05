@@ -12,6 +12,12 @@ from vllm import LLM, SamplingParams
 
 from .base import ModelConfig, ModelGeneration
 
+try:
+    from transformers import AutoTokenizer, PreTrainedTokenizerBase
+except Exception:  # pragma: no cover - optional dependency for chat templates
+    AutoTokenizer = None  # type: ignore[assignment]
+    PreTrainedTokenizerBase = None  # type: ignore[assignment]
+
 
 class VLLMModelRunner:
     """Wrapper around vLLM's high-throughput engine."""
@@ -31,6 +37,12 @@ class VLLMModelRunner:
             max_model_len=config.vllm_max_model_len,
             swap_space=config.vllm_swap_space,
         )
+        self.tokenizer: Optional[PreTrainedTokenizerBase] = None
+        if AutoTokenizer is not None:
+            try:
+                self.tokenizer = AutoTokenizer.from_pretrained(config.model_name)
+            except Exception:
+                self.tokenizer = None
         self._is_unloaded = False
         self._log_configuration()
 
